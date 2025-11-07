@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotação do Dolar + Conversor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #15373b, #4d1f55);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .card {
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    h1 {
+      font-weight: 700;
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Aqui estou usando blocos de codigos com bootstrap para facilidar o css-->
+
+  <div class="container text-center">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <h1 class="mb-4"> Cotação e Conversor de Dólar</h1>
+
+
+
+        <div class="card p-4">
+
+          <!-- icone de carregamento  -->
+          <div id="loading" class="text-center">s
+
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Carregando cotação...</p>
+          </div>
+
+          <!-- Onde sera exibido a cotação e o conversor -->
+          <div id="resultado" class="d-none">
+            <h5 class="card-title text-success">Cotação de venda (USD → BRL)</h5>
+            <p class="card-text fs-3 fw-bold text-dark" id="cotacao">--</p>
+            <p class="text-muted" id="dataCotacao"></p>
+
+            <hr>
+
+            <!-- COnverter dolar para real -->
+            <div class="mb-3">
+              <label for="valorDolar" class="form-label fw-semibold">Digite o valor em dólares (USD):</label>
+              <input type="number" class="form-control text-center" id="valorDolar" placeholder="Ex: 100" min="0"
+                step="0.01">
+            </div>
+            <button class="btn btn-primary w-100 mb-3" onclick="converter()">Converter para Real</button>
+
+            <div id="resultadoConversao" class="fs-5 fw-bold text-dark"></div>
+          </div>
+
+
+          <div id="erro" class="d-none text-danger fw-bold"> Erro ao carregar a cotação.
+          </div>
+
+          <hr>
+
+          <h5 class="card-title text-success">Veja tambem a lista de feriados de 2025</h5>
+
+          <br>
+          <br>
+          <br>
+          <div class="list-group" id="list-group">
+            <button type="button" class="list-group-item list-group-item-action active">
+              Cras justo odio
+            </button>
+            <button type="button" class="list-group-item list-group-item-action">Dapibus ac facilisis in</button>
+            <button type="button" class="list-group-item list-group-item-action">Morbi leo risus</button>
+            <button type="button" class="list-group-item list-group-item-action">Porta ac consectetur ac</button>
+            <button type="button" class="list-group-item list-group-item-action" disabled>Vestibulum at eros</button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+  <script>
+
+
+    let valorCotacao = 0;
+
+    async function obterCotacao() {
+
+      const hoje = new Date();
+      hoje.setDate(hoje.getDate() - 1); // Aqui estarei pegando a cotação do dia anterior
+      const dataFormatada = hoje.toISOString().split('T')[0];
+
+      const url = `https://brasilapi.com.br/api/cambio/v1/cotacao/USD/${dataFormatada}`;
+
+      try {
+        const response = await fetch(url);
+
+        const data = await response.json();
+        valorCotacao = data.cotacoes[0].cotacao_venda;
+
+        document.getElementById('cotacao').innerText = `R$ ${valorCotacao.toFixed(2)}`;
+        document.getElementById('dataCotacao').innerText = `Data da cotação: ${dataFormatada.split('-').reverse().join('/')}`;
+
+        document.getElementById('loading').classList.add('d-none');
+        document.getElementById('resultado').classList.remove('d-none');
+
+
+      } catch (error) {
+        document.getElementById('loading').classList.add('d-none');
+        document.getElementById('erro').classList.remove('d-none');
+        console.error("Erro ao buscar cotação:", error);
+      }
+    }
+
+    function converter() {
+      const input = document.getElementById('valorDolar');
+      const resultado = document.getElementById('resultadoConversao');
+
+      const valor = parseFloat(input.value);
+
+      if (isNaN(valor) || valor <= 0) {
+        resultado.innerHTML = `<span class="text-danger">Por favor, insira um valor válido em dólares.</span>`;
+        return;
+      }
+
+      if (valorCotacao === 0) {
+        resultado.innerHTML = `<span class="text-danger">Cotação ainda não carregada. Tente novamente em alguns segundos.</span>`;
+        return;
+      }
+
+      const valorConvertido = valor * valorCotacao;
+      resultado.innerHTML = `${valor.toFixed(2)} USD = <span class="text-success">R$ ${valorConvertido.toFixed(2)}</span>`;
+    }
+
+
+    async function listaFeriados() {
+      const url = `https://brasilapi.com.br/api/feriados/v1/2025`
+      const container1 = document.getElementById('list-group')
+
+      try {
+        const resposta = await fetch(url)
+        let data = await resposta.json();
+
+        console.log(data)
+
+        container1.innerHTML = ''
+
+        data.forEach(element => {
+          const botao = document.createElement('button');
+          botao.type = "button"
+          botao.className = "list-group-item list-group-item-action"
+          botao.textContent = `${element.name}  - ${element.date}`
+
+          if(data[0].name === element.name) { botao.classList.add("active")}
+          container1.appendChild(botao)
+        });
+
+
+
+      } catch (error) {
+        
+      }
+    } 
+
+
+    listaFeriados()
+    obterCotacao();
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
